@@ -1,0 +1,28 @@
+{
+  "name": "LEDWall Calculator Pro",
+  "short_name": "LEDWall Calc",
+  "description": "Calcolatore professionale per schermi LED modulari: dimensioni, mappatura dati/corrente, materiali e test pattern.",
+  "id": "/",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
+  "background_color": "#06080b",
+  "theme_color": "#06080b",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "iconledwallcalcpro.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "iconledwallcalcpro.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

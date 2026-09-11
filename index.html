@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LEDWall Calculator Pro</title>
+<meta name="description" content="Calcolatore professionale per schermi LED modulari: dimensioni, mappatura dati/corrente, materiali e test pattern.">
+<meta name="theme-color" content="#06080b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LEDWall Calc Pro">
+<meta name="msapplication-TileImage" content="iconledwallcalcpro.png">
+<meta name="msapplication-TileColor" content="#06080b">
+<meta name="msapplication-config" content="browserconfig.xml">
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="512x512" href="iconledwallcalcpro.png">
+<link rel="shortcut icon" type="image/png" href="iconledwallcalcpro.png">
+<link rel="apple-touch-icon" sizes="512x512" href="iconledwallcalcpro.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg: #06080b;
+    --panel: #10141a;
+    --panel-2: #151b22;
+    --line: #223040;
+    --line-soft: #1a222b;
+    --ink: #e8eef5;
+    --ink-dim: #90a0b0;
+    --ink-faint: #4d5c6b;
+    --data: #35d4ff;
+    --data-2: #7ef2ff;
+    --power: #ffb23e;
+    --power-2: #ffd28a;
+    --accent: #b16bff;
+    --good: #33e29a;
+    --bad: #ff4d6a;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Manrope', sans-serif;
+    --radius: 6px;
+    --glow-data: 0 0 10px rgba(53,212,255,.45), 0 0 2px rgba(53,212,255,.8);
+    --glow-power: 0 0 10px rgba(255,178,62,.4), 0 0 2px rgba(255,178,62,.7);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);}
+  body{
+    padding: 16px 12px 78px;
+    background-image:
+      linear-gradient(rgba(53,212,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(53,212,255,.035) 1px, transparent 1px),
+      radial-gradient(ellipse at top, #0c1420 0%, #06080b 60%);
+    background-size: 26px 26px, 26px 26px, 100% 100%;
+    background-attachment: fixed;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  h1,h2,h3{font-family:var(--sans);font-weight:800;margin:0;}
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;padding-bottom:10px;
+    border-bottom:1px solid var(--line);}
+  .topbar .brand{display:flex;align-items:baseline;gap:10px;}
+  .topbar .brand .dot{width:9px;height:9px;background:var(--data);border-radius:50%;display:inline-block;box-shadow:var(--glow-data);
+    animation:pulse 2.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .topbar h1{font-size:19px;letter-spacing:.3px;background:linear-gradient(90deg,var(--ink),var(--data-2));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .topbar .sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);letter-spacing:.03em;}
+
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel) 60%,#0d1116);border:1px solid var(--line);
+    border-radius:var(--radius);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 18px -8px rgba(0,0,0,.6);}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);
+    background:linear-gradient(90deg,var(--panel-2),#131820);position:relative;}
+  .panel-head::after{content:'';position:absolute;left:0;bottom:-1px;width:46px;height:2px;
+    background:linear-gradient(90deg,var(--data),transparent);box-shadow:var(--glow-data);}
+  .panel-head h2{font-size:12px;text-transform:uppercase;letter-spacing:.11em;color:var(--ink-dim);font-weight:700;font-family:var(--mono);}
+  .panel-body{padding:16px;}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  @media(max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+  label{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+  input[type=number]{
+    width:100%;background:#0a0d11;border:1px solid var(--line);color:var(--ink);
+    font-family:var(--mono);font-size:16px;padding:11px 10px;border-radius:var(--radius);transition:box-shadow .15s,border-color .15s;
+  }
+  input[type=number]:focus{outline:none;border-color:var(--data);box-shadow:var(--glow-data);}
+  .field-row{display:flex;gap:10px;}
+  .field-row > div{flex:1;}
+  .field-unit{font-size:10px;color:var(--ink-faint);margin-top:4px;font-family:var(--mono);}
+
+  .aspect-box{margin-top:14px;padding:13px 14px;border-radius:var(--radius);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;background:#0a0d11;position:relative;overflow:hidden;}
+  .aspect-box::before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,rgba(53,212,255,.06),transparent 60%);pointer-events:none;}
+  .aspect-box .label{font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.09em;font-weight:700;font-family:var(--mono);}
+  .aspect-box .value{font-family:var(--mono);font-size:23px;font-weight:700;}
+
+  .stock-box{background:#0a0d11;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;min-width:140px;}
+  .stock-box .t{font-size:9.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;font-family:var(--mono);}
+  .stock-box .v{font-family:var(--mono);font-size:17px;font-weight:700;}
+  .stock-row{display:flex;gap:8px;}
+
+  .kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px;}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--ink-dim);}
+  .kv .v{font-family:var(--mono);font-weight:700;}
+
+  .tabs{display:flex;gap:2px;padding:3px;background:#0a0d11;border-radius:var(--radius);border:1px solid var(--line);}
+  .tab-btn{flex:1;padding:11px 10px;background:transparent;border:none;color:var(--ink-dim);font-family:var(--sans);
+    font-weight:700;font-size:12px;letter-spacing:.04em;cursor:pointer;border-radius:4px;text-transform:uppercase;transition:.15s;}
+  .tab-btn.active{background:linear-gradient(180deg,#1a2733,#131b22);color:var(--data-2);box-shadow:inset 0 0 0 1px rgba(53,212,255,.35), var(--glow-data);}
+  .tab-panel{display:none;padding-top:14px;}
+  .tab-panel.active{display:block;}
+
+  canvas{width:100%;display:block;background:#070a0d;border:1px solid var(--line);border-radius:var(--radius);}
+
+  .btnrow{display:flex;gap:8px;margin:12px 0;}
+  button.opt{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:11px 10px;
+    font-family:var(--sans);font-weight:700;font-size:12px;border-radius:var(--radius);cursor:pointer;transition:.15s;min-height:44px;}
+  button.opt:hover{border-color:var(--data);box-shadow:var(--glow-data);}
+  button.opt:active{transform:translateY(1px);}
+  button.opt:disabled{opacity:.3;cursor:not-allowed;box-shadow:none;}
+
+  .port-line{display:flex;align-items:center;gap:10px;padding:7px 0;}
+  .port-line .tag{font-family:var(--mono);font-size:10.5px;width:128px;flex-shrink:0;font-weight:700;}
+  .port-bar-track{flex:1;height:15px;background:#0a0d11;border:1px solid var(--line);border-radius:3px;overflow:hidden;position:relative;}
+  .port-bar-fill{height:100%;transition:width .2s;box-shadow:inset 0 0 6px rgba(255,255,255,.15);}
+  .port-line .pct{font-family:var(--mono);font-size:10px;color:var(--ink-dim);width:96px;text-align:right;flex-shrink:0;}
+
+  .sender-block{margin-bottom:16px;}
+  .sender-block h4{font-family:var(--mono);font-size:11px;color:var(--data-2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;
+    display:flex;align-items:center;gap:6px;}
+  .sender-block h4::before{content:'';width:6px;height:6px;background:var(--data);border-radius:50%;box-shadow:var(--glow-data);}
+
+  /* HUD chips: Loading Capacity Usage, matching manual terminology (blue/red/gray) */
+  .hud-title{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.09em;
+    margin:2px 0 8px;display:flex;align-items:center;justify-content:space-between;}
+  .hud-strip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .hud-chip{font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 9px;border-radius:4px;border:1px solid var(--line);
+    background:#0a0d11;color:var(--ink-dim);min-width:44px;text-align:center;}
+  .hud-chip.ok{border-color:rgba(53,212,255,.5);color:var(--data-2);box-shadow:0 0 6px rgba(53,212,255,.25);}
+  .hud-chip.over{border-color:rgba(255,77,106,.6);color:#ff8fa1;box-shadow:0 0 6px rgba(255,77,106,.3);}
+  .hud-chip.empty{opacity:.4;}
+  .hud-legend{display:flex;gap:12px;font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);margin-bottom:10px;flex-wrap:wrap;}
+  .hud-legend span{display:inline-flex;align-items:center;gap:4px;}
+  .hud-legend i{width:8px;height:8px;border-radius:2px;display:inline-block;}
+
+  /* Connection pattern picker */
+  .pattern-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;}
+  @media(max-width:420px){.pattern-grid{grid-template-columns:repeat(4,1fr);}}
+  .pattern-btn{background:#0a0d11;border:1px solid var(--line);border-radius:var(--radius);padding:6px 4px 5px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;transition:.15s;}
+  .pattern-btn svg{display:block;}
+  .pattern-btn span{font-family:var(--mono);font-size:8.5px;color:var(--ink-faint);letter-spacing:.02em;}
+  .pattern-btn.active{border-color:var(--data);box-shadow:var(--glow-data);}
+  .pattern-btn.active span{color:var(--data-2);}
+
+  .recap-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;}
+  @media(max-width:600px){.recap-grid{grid-template-columns:1fr;}}
+
+  .test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+  @media(max-width:600px){.test-grid{grid-template-columns:repeat(2,1fr);}}
+  .test-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);padding:12px 6px;
+    font-family:var(--sans);font-weight:700;font-size:11px;border-radius:var(--radius);cursor:pointer;text-align:center;min-height:44px;transition:.15s;}
+  .test-btn.active{border-color:var(--data);color:var(--data-2);box-shadow:var(--glow-data);}
+  #testPreviewWrap{margin-top:10px;}
+  #dlPng{margin-top:10px;width:100%;}
+
+  .pdf-btn{width:100%;background:linear-gradient(90deg,var(--data),var(--data-2));border:none;color:#03141d;padding:15px;font-family:var(--sans);
+    font-weight:800;font-size:13px;border-radius:var(--radius);cursor:pointer;letter-spacing:.02em;box-shadow:var(--glow-data);min-height:48px;}
+  .pdf-btn:hover{filter:brightness(1.08);}
+
+  .warn{margin-top:10px;padding:10px 12px;background:#241014;border:1px solid rgba(255,77,106,.4);color:#ff9aae;
+    font-size:11.5px;border-radius:var(--radius);font-family:var(--mono);box-shadow:0 0 10px rgba(255,77,106,.15);}
+  .note{font-size:11px;color:var(--ink-faint);margin-top:8px;line-height:1.5;}
+
+  /* Bottom quick-nav (mobile) */
+  .quicknav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:space-around;
+    background:rgba(10,13,17,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+  .quicknav button{background:none;border:none;color:var(--ink-faint);font-family:var(--mono);font-size:9px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 6px;cursor:pointer;min-width:44px;}
+  .quicknav button svg{width:18px;height:18px;}
+  .quicknav button.active{color:var(--data-2);}
+  .quicknav button.active svg{filter:drop-shadow(0 0 4px rgba(53,212,255,.7));}
+</style>
+</head>
+<body>
+<div class="wrap" id="reportRoot">
+
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span><h1>LEDWall Calculator</h1></div>
+    <div class="sub">P2.9 · 500×500mm · Wave&amp;Co / Colorlight Z4</div>
+  </div>
+
+  <!-- INPUT + ASPECT + STOCK -->
+  <div class="panel" id="sec-dim">
+    <div class="panel-head"><h2>Dimensioni Schermo</h2>
+      <div class="stock-row">
+        <div class="stock-box"><div class="t">Stock mattonelle</div><div class="v" id="stockTiles">–/83</div></div>
+        <div class="stock-box"><div class="t">Stock processori</div><div class="v" id="stockProc">–/4</div></div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="grid-2">
+        <div>
+          <label>Dimensioni schermo (metri)</label>
+          <div class="field-row">
+            <div><input type="number" id="mW" min="0.5" step="0.5" value="4"><div class="field-unit">larghezza (m)</div></div>
+            <div><input type="number" id="mH" min="0.5" step="0.5" value="2.5"><div class="field-unit">altezza (m)</div></div>
+          </div>
+        </div>
+        <div>
+          <label>Mattonelle (colonne × righe)</label>
+          <div class="field-row">
+            <div><input type="number" id="cCols" min="1" step="1" value="8"><div class="field-unit">colonne</div></div>
+            <div><input type="number" id="cRows" min="1" step="1" value="5"><div class="field-unit">righe</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="aspect-box">
+        <div>
+          <div class="label">Rapporto d'aspetto</div>
+          <div class="value" id="aspectVal">16:9.00</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="label">Risoluzione totale</div>
+          <div class="value" id="resVal" style="font-size:15px;">–</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MERGED SPECS + HW LIMITS -->
+  <div class="panel">
+    <div class="panel-head"><h2>Specifiche modulo &amp; limiti hardware</h2></div>
+    <div class="panel-body">
+      <div class="grid-3">
+        <div>
+          <div class="kv"><span class="k">Modulo</span><span class="v">500×500mm</span></div>
+          <div class="kv"><span class="k">Risoluzione tile</span><span class="v">168×168 px</span></div>
+          <div class="kv"><span class="k">Peso tile</span><span class="v">9.3 kg</span></div>
+          <div class="kv"><span class="k">Dimensioni totali</span><span class="v" id="dimTot">–</span></div>
+          <div class="kv"><span class="k">Peso stimato</span><span class="v" id="weightTot">–</span></div>
+        </div>
+        <div>
+          <div class="kv"><span class="k">Max px / porta</span><span class="v">655.360</span></div>
+          <div class="kv"><span class="k">Max lato / porta</span><span class="v">3840 px</span></div>
+          <div class="kv"><span class="k">Porte / sender</span><span class="v">4</span></div>
+          <div class="kv"><span class="k">Max px / sender</span><span class="v">2.600.000</span></div>
+          <div class="kv"><span class="k">Sender richiesti</span><span class="v" id="senderTot">–</span></div>
+        </div>
+        <div>
+          <div class="kv"><span class="k">Max cabinet / linea</span><span class="v">18 (220V)</span></div>
+          <div class="kv"><span class="k">Consumo / cabinet</span><span class="v">132.5 W</span></div>
+          <div class="kv"><span class="k">Consumo medio</span><span class="v" id="powerAvg">–</span></div>
+          <div class="kv"><span class="k">Consumo massimo</span><span class="v" id="powerMax">–</span></div>
+          <div class="kv"><span class="k">Linee PowerCon</span><span class="v" id="lineTot">–</span></div>
+        </div>
+      </div>
+      <div id="stockWarn"></div>
+    </div>
+  </div>
+
+  <!-- SCHEMA E MAPPATURA -->
+  <div class="panel" id="sec-map">
+    <div class="panel-head"><h2>Schema e Mappatura</h2></div>
+    <div class="panel-body">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="dati">Dati</button>
+        <button class="tab-btn" data-tab="corrente">Corrente</button>
+      </div>
+
+      <!-- DATI TAB -->
+      <div class="tab-panel active" id="tab-dati">
+        <div class="hud-title">Tipo di collegamento cabinet</div>
+        <div class="pattern-grid" id="patternGrid"></div>
+        <canvas id="mapCanvasData" height="360"></canvas>
+        <div class="btnrow">
+          <button class="opt" id="btnPortMinus">− porte (più carico)</button>
+          <button class="opt" id="btnPortPlus">+ porte (meno carico)</button>
+        </div>
+        <div class="hud-title">Loading Capacity Usage <span id="dataHudSummary" style="color:var(--ink-dim);text-transform:none;letter-spacing:0;"></span></div>
+        <div class="hud-legend">
+          <span><i style="background:var(--data)"></i>normale</span>
+          <span><i style="background:var(--bad)"></i>oltre limite</span>
+          <span><i style="background:var(--ink-faint)"></i>non caricata</span>
+        </div>
+        <div class="hud-strip" id="dataHudStrip"></div>
+        <div id="dataSenderList"></div>
+      </div>
+
+      <!-- CORRENTE TAB -->
+      <div class="tab-panel" id="tab-corrente">
+        <canvas id="mapCanvasPower" height="360"></canvas>
+        <div class="btnrow">
+          <button class="opt" id="btnFaseMinus">− fasi (più carico)</button>
+          <button class="opt" id="btnFasePlus">+ fasi (meno carico)</button>
+        </div>
+        <div class="hud-title">Loading Capacity Usage <span id="powerHudSummary" style="color:var(--ink-dim);text-transform:none;letter-spacing:0;"></span></div>
+        <div class="hud-legend">
+          <span><i style="background:var(--power)"></i>normale</span>
+          <span><i style="background:var(--bad)"></i>oltre limite</span>
+          <span><i style="background:var(--ink-faint)"></i>non caricata</span>
+        </div>
+        <div class="hud-strip" id="powerHudStrip"></div>
+        <div id="powerLineList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATERIALI -->
+  <div class="panel" id="sec-mat">
+    <div class="panel-head"><h2>Recap materiali</h2></div>
+    <div class="panel-body">
+      <div class="recap-grid" id="materialsList"></div>
+    </div>
+  </div>
+
+  <!-- TEST PATTERN -->
+  <div class="panel" id="sec-test">
+    <div class="panel-head"><h2>Generatore test pattern</h2></div>
+    <div class="panel-body">
+      <div class="test-grid" id="testGrid">
+        <button class="test-btn active" data-p="grid">1 · Griglia pannelli</button>
+        <button class="test-btn" data-p="pixelgrid">2 · Pixel grid</button>
+        <button class="test-btn" data-p="bars">3 · Barre colore</button>
+        <button class="test-btn" data-p="gradient">4 · Gradiente colore</button>
+        <button class="test-btn" data-p="grayscale">5 · Gradiente B/N</button>
+        <button class="test-btn" data-p="checker">6 · Scacchiera</button>
+      </div>
+      <div id="testPreviewWrap"><canvas id="testCanvas"></canvas></div>
+      <button class="pdf-btn" id="dlPng" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);">Scarica PNG test pattern</button>
+    </div>
+  </div>
+
+  <!-- PDF EXPORT -->
+  <div class="panel" id="sec-pdf">
+    <div class="panel-head"><h2>Esporta</h2></div>
+    <div class="panel-body">
+      <button class="pdf-btn" id="exportPdf">Esporta report completo in PDF</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- QUICK NAV (mobile) -->
+<nav class="quicknav" id="quicknav">
+  <button data-target="sec-dim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Schermo</button>
+  <button data-target="sec-map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Mappa</button>
+  <button data-target="sec-mat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg>Materiali</button>
+  <button data-target="sec-test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="14" rx="1"/><path d="M3 21h18M8 17v4M16 17v4"/></svg>Test</button>
+  <button data-target="sec-pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>PDF</button>
+</nav>
+
+<script>
+/* ================= CONSTANTS ================= */
+const TILE_MM = 500;
+const TILE_M = 0.5;
+const TILE_RES = 168;
+const TILE_PX = TILE_RES*TILE_RES; // 28224
+const TILE_WEIGHT = 9.3;
+const PORT_MAX_PX = 655360;
+const PORT_MAX_DIM = 3840;
+const PORT_MAX_TILES_DIM = Math.floor(PORT_MAX_DIM/TILE_RES); // 22
+const PORT_MAX_TILES_PX = Math.floor(PORT_MAX_PX/TILE_PX); // 23
+const PORT_CAPACITY_TILES = Math.min(PORT_MAX_TILES_DIM, PORT_MAX_TILES_PX); // 22
+const SENDER_PORTS = 4;
+const CABINETS_PER_LINE = 18;
+const W_PER_CABINET = 132.5;
+const STOCK_TILES = 83;
+const STOCK_PROC = 4;
+
+const COL_DATA = ['#35d4ff','#7ef2ff','#2a8fc2','#8ec9e8','#33e29a','#b16bff'];
+const COL_POWER = ['#ffb23e','#33e29a','#b16bff']; // one fixed color per fase: L1, L2, L3
+const PHASE_NAMES = ['L1','L2','L3'];
+
+let state = { cols:8, rows:5, portOverride:0, phaseOverride:0, testPattern:'grid', connectionPattern:'TL-H' };
+const CONNECTION_PATTERNS = ['TL-H','TR-H','BL-H','BR-H','TL-V','TR-V','BL-V','BR-V'];
+
+/* ================= HELPERS ================= */
+function $(id){return document.getElementById(id);}
+function fmt(n,d=2){return Number(n).toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function lerpColor(a,b,t){
+  const ah=a.match(/\w\w/g).map(x=>parseInt(x,16));
+  const bh=b.match(/\w\w/g).map(x=>parseInt(x,16));
+  const c=ah.map((v,i)=>Math.round(v+(bh[i]-v)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function statusColor(t){ // t 0..1 -> green to red
+  t = Math.max(0,Math.min(1,t));
+  return lerpColor('#33e29a','#ff4d6a', t);
+}
+
+/* ================= INPUT SYNC ================= */
+function setFromMeters(){
+  let w = parseFloat($('mW').value)||0;
+  let h = parseFloat($('mH').value)||0;
+  state.cols = Math.max(1, Math.round(w/TILE_M));
+  state.rows = Math.max(1, Math.round(h/TILE_M));
+  $('cCols').value = state.cols;
+  $('cRows').value = state.rows;
+  recalcAll();
+}
+function setFromTiles(){
+  state.cols = Math.max(1, Math.round(parseFloat($('cCols').value)||1));
+  state.rows = Math.max(1, Math.round(parseFloat($('cRows').value)||1));
+  $('mW').value = (state.cols*TILE_M).toFixed(2);
+  $('mH').value = (state.rows*TILE_M).toFixed(2);
+  recalcAll();
+}
+$('mW').addEventListener('input', setFromMeters);
+$('mH').addEventListener('input', setFromMeters);
+$('cCols').addEventListener('input', setFromTiles);
+$('cRows').addEventListener('input', setFromTiles);
+
+/* ================= ASPECT RATIO 16:X ================= */
+function computeAspect(cols,rows){
+  const w = cols*TILE_RES, h = rows*TILE_RES;
+  const x = 16 * (h/w); // width:height = 16:x
+  const delta = Math.abs(x-9);
+  // color scale: delta 0 -> green, delta >=4 -> red
+  const t = Math.min(1, delta/4);
+  return {x, color: statusColor(t)};
+}
+
+/* ================= DATA MAPPING ================= */
+// Build a serpentine tile order across the whole grid, following one of the 8
+// standard connection patterns (start corner TL/TR/BL/BR x orientation H/V),
+// matching the "Connection Type" patterns of real LED processors (e.g. NovaStar).
+function buildSerpentineOrder(cols,rows,pattern){
+  pattern = pattern || 'TL-H';
+  const [corner,orient] = pattern.split('-');
+  const flipX = corner.includes('R'); // start from right
+  const flipY = corner.includes('B'); // start from bottom
+  const order = [];
+  if(orient==='V'){
+    for(let ci=0;ci<cols;ci++){
+      const c = flipX ? (cols-1-ci) : ci;
+      const topToBottom = (ci%2===0) ? !flipY : flipY;
+      if(topToBottom){ for(let r=0;r<rows;r++) order.push({c,r}); }
+      else { for(let r=rows-1;r>=0;r--) order.push({c,r}); }
+    }
+  } else {
+    for(let ri=0;ri<rows;ri++){
+      const r = flipY ? (rows-1-ri) : ri;
+      const leftToRight = (ri%2===0) ? !flipX : flipX;
+      if(leftToRight){ for(let c=0;c<cols;c++) order.push({c,r}); }
+      else { for(let c=cols-1;c>=0;c--) order.push({c,r}); }
+    }
+  }
+  return order;
+}
+
+function buildMainLines(cols,rows,capacity){
+  const order = buildSerpentineOrder(cols,rows,state.connectionPattern);
+  const lines = [];
+  for(let i=0;i<order.length;i+=capacity){
+    lines.push(order.slice(i,i+capacity));
+  }
+  return lines;
+}
+
+// Sender/port assignment per spec rules
+function assignSenders(numMain){
+  const mainSendersNeeded = Math.ceil(numMain/SENDER_PORTS);
+  let backupInSameSender = numMain<=2;
+  let backupSendersNeeded = backupInSameSender ? 0 : mainSendersNeeded;
+  const totalSenders = mainSendersNeeded + backupSendersNeeded;
+
+  const assign = []; // {lineIndex, type:'main'|'backup', sender, port}
+  for(let i=0;i<numMain;i++){
+    const sender = Math.floor(i/SENDER_PORTS)+1;
+    const port = (i%SENDER_PORTS)+1;
+    assign.push({lineIndex:i, type:'main', sender, port});
+  }
+  if(backupInSameSender){
+    for(let i=0;i<numMain;i++){
+      const port = numMain+i+1; // fills remaining ports of sender 1
+      assign.push({lineIndex:i, type:'backup', sender:1, port});
+    }
+  } else {
+    for(let i=0;i<numMain;i++){
+      const sender = mainSendersNeeded + Math.floor(i/SENDER_PORTS) + 1;
+      const port = (i%SENDER_PORTS)+1;
+      assign.push({lineIndex:i, type:'backup', sender, port});
+    }
+  }
+  return {assign, totalSenders, mainSendersNeeded, backupSendersNeeded};
+}
+
+function currentCapacity(){
+  const base = PORT_CAPACITY_TILES;
+  const override = state.portOverride||0;
+  return Math.max(1, Math.min(PORT_CAPACITY_TILES+4, base - override));
+  // note: negative override (- porte button) increases load per port (fewer ports)
+}
+
+/* ================= POWER LINES ================= */
+function buildPowerLines(cols,rows,capacity){
+  const order = buildSerpentineOrder(cols,rows,state.connectionPattern);
+  const lines = [];
+  for(let i=0;i<order.length;i+=capacity){
+    lines.push(order.slice(i,i+capacity));
+  }
+  return lines;
+}
+function powerCapacity(){
+  const base = CABINETS_PER_LINE;
+  const override = state.phaseOverride||0;
+  return Math.max(1, Math.min(CABINETS_PER_LINE+6, base - override));
+}
+function assignPhases(numLines){
+  // Every power line is assigned to exactly one phase (1 linea = 1 fase, mai divisa).
+  // Distributed round-robin across L1/L2/L3 to balance load.
+  const phases = [[],[],[]];
+  for(let i=0;i<numLines;i++){
+    phases[i%3].push(i);
+  }
+  return phases;
+}
+function phaseOfLineMap(numLines){
+  // lineIndex -> {phase:0..2, posInPhase:1-based order within that phase}
+  const phases = assignPhases(numLines);
+  const map = {};
+  phases.forEach((idxs,pi)=>{
+    idxs.forEach((li,pos)=>{ map[li] = {phase:pi, posInPhase:pos+1}; });
+  });
+  return map;
+}
+
+/* ================= RENDER: TOP INFO ================= */
+function recalcAll(){
+  const cols=state.cols, rows=state.rows, total=cols*rows;
+
+  // aspect
+  const asp = computeAspect(cols,rows);
+  $('aspectVal').textContent = `16:${fmt(asp.x,2)}`;
+  $('aspectVal').style.color = asp.color;
+  $('resVal').textContent = `${cols*TILE_RES} × ${rows*TILE_RES} px`;
+
+  // dims/weight
+  $('dimTot').textContent = `${fmt(cols*TILE_M,2)} × ${fmt(rows*TILE_M,2)} m`;
+  $('weightTot').textContent = `${fmt(total*TILE_WEIGHT,1)} kg`;
+
+  // power
+  const totalW = total*W_PER_CABINET;
+  $('powerAvg').textContent = `${fmt(totalW/1000,2)} kW`;
+  $('powerMax').textContent = `${fmt(totalW/1000*1.0,2)} kW`;
+
+  // stock
+  $('stockTiles').textContent = `${total}/${STOCK_TILES}`;
+  $('stockTiles').style.color = total>STOCK_TILES ? 'var(--bad)' : 'var(--ink)';
+
+  // mapping / senders
+  const capacity = currentCapacity();
+  const mainLines = buildMainLines(cols,rows,capacity);
+  const senderInfo = assignSenders(mainLines.length);
+  $('senderTot').textContent = senderInfo.totalSenders;
+  $('stockProc').textContent = `${senderInfo.totalSenders}/${STOCK_PROC}`;
+  $('stockProc').style.color = senderInfo.totalSenders>STOCK_PROC ? 'var(--bad)' : 'var(--ink)';
+
+  let warn = '';
+  if(total>STOCK_TILES) warn += `Attenzione: servono ${total} mattonelle, disponibili ${STOCK_TILES} in magazzino.<br>`;
+  if(senderInfo.totalSenders>STOCK_PROC) warn += `Attenzione: servono ${senderInfo.totalSenders} processori, disponibili ${STOCK_PROC} in magazzino.`;
+  $('stockWarn').innerHTML = warn ? `<div class="warn">${warn}</div>` : '';
+
+  // power lines
+  const pCapacity = powerCapacity();
+  const powerLines = buildPowerLines(cols,rows,pCapacity);
+  const phaseMap = phaseOfLineMap(powerLines.length); // 1 linea = 1 fase, sempre
+  $('lineTot').textContent = powerLines.length;
+
+  drawDataMap(cols,rows,mainLines,senderInfo);
+  drawPowerMap(cols,rows,powerLines,phaseMap);
+  renderSenderList(mainLines,senderInfo);
+  renderPowerList(powerLines,phaseMap);
+  renderMaterials(cols,rows,total,mainLines,senderInfo,powerLines);
+  drawTestPattern();
+  renderHudStrips(mainLines,senderInfo,powerLines);
+
+  // button disabled states
+  $('btnPortMinus').disabled = capacity>=PORT_CAPACITY_TILES+4;
+  $('btnPortPlus').disabled = capacity<=1;
+}
+
+/* ================= HUD: Loading Capacity Usage (blue/red/gray, per manuale) ================= */
+function renderHudStrips(mainLines,senderInfo,powerLines){
+  // DATI: one chip per used port (main+backup), colored by pixel loading capacity usage
+  const dataEl = $('dataHudStrip');
+  dataEl.innerHTML = '';
+  let overCount = 0;
+  senderInfo.assign.slice().sort((a,b)=> a.sender-b.sender || a.port-b.port).forEach(a=>{
+    const line = mainLines[a.lineIndex];
+    const pixels = line.length*TILE_PX;
+    const over = pixels>PORT_MAX_PX;
+    if(over) overCount++;
+    const chip = document.createElement('div');
+    chip.className = 'hud-chip ' + (over?'over':'ok');
+    chip.textContent = `S${a.sender}.P${a.port}`;
+    chip.title = `${a.type==='main'?'MAIN':'BACKUP'} — ${pixels.toLocaleString('it-IT')}/${PORT_MAX_PX.toLocaleString('it-IT')} px`;
+    dataEl.appendChild(chip);
+  });
+  $('dataHudSummary').textContent = overCount>0 ? `(${overCount} porta/e oltre il limite)` : '(tutte le porte entro i limiti)';
+
+  // CORRENTE: one chip per power line, colored by watt loading capacity usage
+  const powerEl = $('powerHudStrip');
+  powerEl.innerHTML = '';
+  let overP = 0;
+  const maxWatt = CABINETS_PER_LINE*W_PER_CABINET;
+  powerLines.forEach((line,li)=>{
+    const watt = line.length*W_PER_CABINET;
+    const over = watt>maxWatt;
+    if(over) overP++;
+    const chip = document.createElement('div');
+    chip.className = 'hud-chip ' + (over?'over':'ok');
+    if(over) chip.style.color = '#ff8fa1';
+    chip.textContent = `L${li+1}`;
+    chip.title = `${fmt(watt,0)}/${fmt(maxWatt,0)} W`;
+    powerEl.appendChild(chip);
+  });
+  $('powerHudSummary').textContent = overP>0 ? `(${overP} linea/e oltre il limite)` : '(tutte le linee entro i limiti)';
+}
+
+/* ================= CONNECTION PATTERN PICKER ================= */
+// Draws a small serpentine-path icon (4x3 dot grid) illustrating each of the 8 patterns.
+function patternIconSVG(pattern){
+  const cols=4, rows=3, w=44, h=34, pad=5;
+  const stepX=(w-2*pad)/(cols-1), stepY=(h-2*pad)/(rows-1);
+  const order = buildSerpentineOrder(cols,rows,pattern);
+  const pt = (c,r)=>[pad+c*stepX, pad+r*stepY];
+  let path = '';
+  order.forEach((p,i)=>{
+    const [x,y] = pt(p.c,p.r);
+    path += (i===0?'M':'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+  });
+  const [sx,sy] = pt(order[0].c,order[0].r);
+  const [ex,ey] = pt(order[order.length-1].c,order[order.length-1].r);
+  return `<svg viewBox="0 0 ${w} ${h}" width="44" height="34">
+    <path d="${path}" fill="none" stroke="var(--data)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
+    <circle cx="${sx}" cy="${sy}" r="2.6" fill="var(--good)"/>
+    <circle cx="${ex}" cy="${ey}" r="2.6" fill="var(--bad)"/>
+  </svg>`;
+}
+function renderPatternGrid(){
+  const el = $('patternGrid');
+  el.innerHTML = '';
+  const labels = {
+    'TL-H':'TL orizz.','TR-H':'TR orizz.','BL-H':'BL orizz.','BR-H':'BR orizz.',
+    'TL-V':'TL vert.','TR-V':'TR vert.','BL-V':'BL vert.','BR-V':'BR vert.'
+  };
+  CONNECTION_PATTERNS.forEach(p=>{
+    const btn = document.createElement('button');
+    btn.className = 'pattern-btn' + (state.connectionPattern===p?' active':'');
+    btn.innerHTML = patternIconSVG(p) + `<span>${labels[p]}</span>`;
+    btn.addEventListener('click', ()=>{
+      state.connectionPattern = p;
+      document.querySelectorAll('.pattern-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      recalcAll();
+    });
+    el.appendChild(btn);
+  });
+}
+
+/* ================= DRAW: DATA MAP ================= */
+function drawDataMap(cols,rows,mainLines,senderInfo){
+  const canvas = $('mapCanvasData');
+  const dpr = window.devicePixelRatio||1;
+  const cssW = canvas.clientWidth || 640;
+  const tileSize = Math.max(10, Math.min(34, Math.floor((cssW-20)/cols)));
+  const cssH = rows*tileSize + 40;
+  canvas.style.height = cssH+'px';
+  canvas.width = cssW*dpr; canvas.height = cssH*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const gridW = cols*tileSize;
+  const offX = (cssW-gridW)/2;
+  const offY = 20;
+
+  // map tile -> line index
+  const tileLine = {};
+  mainLines.forEach((line,li)=>{ line.forEach(t=>{ tileLine[`${t.c},${t.r}`]=li; }); });
+
+  // draw tiles
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const li = tileLine[`${c},${r}`];
+      const col = COL_DATA[li % COL_DATA.length];
+      ctx.fillStyle = col;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(offX+c*tileSize, offY+r*tileSize, tileSize-1, tileSize-1);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // arrows + M/B labels: for each line, find start/end and draw arrow along path
+  ctx.font = `${Math.max(9,tileSize*0.32)}px IBM Plex Mono`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  mainLines.forEach((line,li)=>{
+    const info = senderInfo.assign.find(a=>a.lineIndex===li && a.type==='main');
+    const first = line[0], last = line[line.length-1];
+    const fx = offX+first.c*tileSize+tileSize/2, fy = offY+first.r*tileSize+tileSize/2;
+    const lx = offX+last.c*tileSize+tileSize/2, ly = offY+last.r*tileSize+tileSize/2;
+    // label at start
+    ctx.fillStyle='#0b0d10';
+    ctx.fillText(`M${li+1}`, fx, fy);
+    // small arrow at end pointing direction of travel
+    ctx.save();
+    ctx.strokeStyle='#0b0d10'; ctx.lineWidth=1.5;
+    ctx.beginPath();
+    const dir = last.c - (line.length>1?line[line.length-2].c:last.c);
+    const ax = lx + (dir>=0?6:-6);
+    ctx.moveTo(lx-4,ly); ctx.lineTo(ax,ly); ctx.lineTo(lx-4,ly-4);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // backup markers on outer edge tiles (append visually at line end + 'B' tag near border)
+  mainLines.forEach((line,li)=>{
+    const last = line[line.length-1];
+    const bx = offX+last.c*tileSize+tileSize/2;
+    const by = offY+last.r*tileSize+tileSize/2;
+    ctx.fillStyle='rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.arc(bx, by+tileSize*0.55, tileSize*0.24, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.font = `${Math.max(7,tileSize*0.24)}px IBM Plex Mono`;
+    ctx.fillText(`B${li+1}`, bx, by+tileSize*0.55);
+  });
+}
+
+/* ================= DRAW: POWER MAP ================= */
+function drawPowerMap(cols,rows,powerLines,phaseMap){
+  const canvas = $('mapCanvasPower');
+  const dpr = window.devicePixelRatio||1;
+  const cssW = canvas.clientWidth || 640;
+  const tileSize = Math.max(10, Math.min(34, Math.floor((cssW-20)/cols)));
+  const cssH = rows*tileSize + 60;
+  canvas.style.height = cssH+'px';
+  canvas.width = cssW*dpr; canvas.height = cssH*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const gridW = cols*tileSize;
+  const offX = (cssW-gridW)/2;
+  const offY = 20;
+
+  const tileLine = {};
+  powerLines.forEach((line,li)=>{ line.forEach(t=>{ tileLine[`${t.c},${t.r}`]=li; }); });
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const li = tileLine[`${c},${r}`];
+      const ph = phaseMap[li].phase;
+      ctx.fillStyle = COL_POWER[ph];
+      ctx.globalAlpha=0.85;
+      ctx.fillRect(offX+c*tileSize, offY+r*tileSize, tileSize-1, tileSize-1);
+      ctx.globalAlpha=1;
+    }
+  }
+  ctx.font = `${Math.max(9,tileSize*0.32)}px IBM Plex Mono`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  powerLines.forEach((line,li)=>{
+    const first = line[0];
+    const fx = offX+first.c*tileSize+tileSize/2, fy = offY+first.r*tileSize+tileSize/2;
+    const ph = phaseMap[li];
+    ctx.fillStyle='#0b0d10';
+    // Etichetta: fase + numero progressivo di linea su quella fase (1 linea = 1 fase)
+    ctx.fillText(`${PHASE_NAMES[ph.phase]}.${ph.posInPhase}`, fx, fy);
+  });
+
+  // legenda fasi
+  const legY = offY+rows*tileSize+16;
+  ctx.textAlign='left'; ctx.font = `600 11px IBM Plex Mono`;
+  PHASE_NAMES.forEach((name,i)=>{
+    const lx = offX + i*110;
+    ctx.fillStyle = COL_POWER[i];
+    ctx.fillRect(lx, legY, 10, 10);
+    ctx.fillStyle = '#9aa1ab';
+    ctx.fillText(`Fase ${name}`, lx+15, legY+9);
+  });
+}
+
+/* ================= SENDER / PORT LIST (DATI) ================= */
+function renderSenderList(mainLines,senderInfo){
+  const el = $('dataSenderList');
+  el.innerHTML='';
+  const bySender = {};
+  senderInfo.assign.forEach(a=>{
+    bySender[a.sender] = bySender[a.sender]||[];
+    bySender[a.sender].push(a);
+  });
+  Object.keys(bySender).sort((a,b)=>a-b).forEach(sNum=>{
+    const block = document.createElement('div');
+    block.className='sender-block';
+    const h = document.createElement('h4'); h.textContent = `Sender ${sNum}`;
+    block.appendChild(h);
+    bySender[sNum].sort((a,b)=>a.port-b.port).forEach(a=>{
+      const line = mainLines[a.lineIndex];
+      const pixels = line.length*TILE_PX;
+      const pct = pixels/PORT_MAX_PX;
+      const row = document.createElement('div');
+      row.className='port-line';
+      const col = COL_DATA[a.lineIndex % COL_DATA.length];
+      row.innerHTML = `
+        <div class="tag" style="color:${col}">${sNum}-${a.port} · ${a.type==='main'?'MAIN':'BKP'} ${a.type==='main'?'M':'B'}${a.lineIndex+1}</div>
+        <div class="port-bar-track"><div class="port-bar-fill" style="width:${Math.min(100,pct*100)}%;background:${statusColor(pct)}"></div></div>
+        <div class="pct">${pixels.toLocaleString('it-IT')}/${PORT_MAX_PX.toLocaleString('it-IT')}</div>
+      `;
+      block.appendChild(row);
+    });
+    el.appendChild(block);
+  });
+}
+
+/* ================= POWER LIST (CORRENTE) ================= */
+// Ogni linea PowerCon appartiene a UNA sola fase (mai divisa tra fasi).
+function renderPowerList(powerLines,phaseMap){
+  const el = $('powerLineList');
+  el.innerHTML='';
+  const phases = assignPhases(powerLines.length);
+  phases.forEach((idxs,pi)=>{
+    if(idxs.length===0) return;
+    const block = document.createElement('div');
+    block.className='sender-block';
+    const totalPhaseW = idxs.reduce((s,li)=>s+powerLines[li].length*W_PER_CABINET,0);
+    const h = document.createElement('h4');
+    h.textContent = `Fase ${PHASE_NAMES[pi]} — ${idxs.length} line${idxs.length>1?'e':'a'} · ${fmt(totalPhaseW,0)} W`;
+    block.appendChild(h);
+    idxs.forEach((li,posIdx)=>{
+      const line = powerLines[li];
+      const watt = line.length*W_PER_CABINET;
+      const maxWatt = CABINETS_PER_LINE*W_PER_CABINET;
+      const pct = watt/maxWatt;
+      const row = document.createElement('div');
+      row.className='port-line';
+      const col = COL_POWER[pi];
+      row.innerHTML = `
+        <div class="tag" style="color:${col}">${PHASE_NAMES[pi]}.${posIdx+1} · ${line.length} cab.</div>
+        <div class="port-bar-track"><div class="port-bar-fill" style="width:${Math.min(100,pct*100)}%;background:${statusColor(pct)}"></div></div>
+        <div class="pct">${fmt(watt,0)}/${fmt(maxWatt,0)} W</div>
+      `;
+      block.appendChild(row);
+    });
+    el.appendChild(block);
+  });
+}
+
+/* ================= MATERIALS RECAP ================= */
+function renderMaterials(cols,rows,total,mainLines,senderInfo,powerLines){
+  const numMain = mainLines.length;
+  const longEthercon = numMain*2; // main + backup, sender to first tile
+  const shortEthercon = Math.max(0, total - numMain); // tile-to-tile links
+  const powerConCodini = Math.max(0, total-1)*0 + total; // in-out per cabinet chain approx: one per cabinet
+  const powerPlugs = powerLines.length; // CEE/PowerCon feed points
+  const panels32A = Math.ceil(powerLines.length/6); // 6 CEE monofase per quadro
+
+  const items = [
+    ['Cavi lunghi Ethercon (sender → prima mattonella)', longEthercon],
+    ['Cavi corti Ethercon (link mattonella-mattonella)', shortEthercon],
+    ['Codini in-out PowerCon', powerConCodini],
+    ['Prese CEE / PowerCon', powerPlugs],
+    [`Quadri 32A (6× CEE monofase)`, panels32A],
+    ['Sender / processori', senderInfo.totalSenders],
+  ];
+  const el = $('materialsList');
+  el.innerHTML = items.map(([k,v])=>`<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+}
+
+/* ================= OPTIMIZATION BUTTONS ================= */
+$('btnPortMinus').addEventListener('click', ()=>{ state.portOverride -= 1; recalcAll(); }); // more load, fewer ports
+$('btnPortPlus').addEventListener('click', ()=>{ state.portOverride += 1; recalcAll(); }); // less load, more ports
+$('btnFaseMinus').addEventListener('click', ()=>{ state.phaseOverride -= 1; recalcAll(); });
+$('btnFasePlus').addEventListener('click', ()=>{ state.phaseOverride += 1; recalcAll(); });
+
+/* ================= TABS ================= */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-'+btn.dataset.tab).classList.add('active');
+    recalcAll();
+  });
+});
+
+/* ================= TEST PATTERN GENERATOR ================= */
+document.querySelectorAll('.test-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.test-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.testPattern = btn.dataset.p;
+    drawTestPattern();
+  });
+});
+
+function drawTestPattern(){
+  const cols=state.cols, rows=state.rows;
+  const resW = cols*TILE_RES, resH = rows*TILE_RES;
+  const canvas = $('testCanvas');
+  canvas.width = resW; canvas.height = resH;
+  const maxCssW = 640;
+  const scale = Math.min(1, maxCssW/resW);
+  canvas.style.width = (resW*scale)+'px';
+  canvas.style.height = (resH*scale)+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,resW,resH);
+
+  const pattern = state.testPattern;
+  if(pattern==='grid'){
+    const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let n=1;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const hue = ( (r*cols+c) * 47 ) % 360;
+        ctx.fillStyle = `hsl(${hue},55%,42%)`;
+        ctx.fillRect(c*TILE_RES, r*TILE_RES, TILE_RES-2, TILE_RES-2);
+        ctx.fillStyle='#fff';
+        ctx.font='bold 28px monospace';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(`${letters[r%26]}${n}`, c*TILE_RES+TILE_RES/2, r*TILE_RES+TILE_RES/2);
+        n++;
+      }
+    }
+  } else if(pattern==='pixelgrid'){
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,resW,resH);
+    ctx.strokeStyle='#3a3a3a'; ctx.lineWidth=1;
+    for(let x=0;x<resW;x+=10){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,resH); ctx.stroke(); }
+    for(let y=0;y<resH;y+=10){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(resW,y); ctx.stroke(); }
+    ctx.strokeStyle='#e0544a'; ctx.lineWidth=2;
+    for(let x=0;x<resW;x+=TILE_RES){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,resH); ctx.stroke(); }
+    for(let y=0;y<resH;y+=TILE_RES){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(resW,y); ctx.stroke(); }
+  } else if(pattern==='bars'){
+    const cols7 = ['#c0c0c0','#c0c000','#00c0c0','#00c000','#c000c0','#c00000','#0000c0'];
+    const bw = resW/cols7.length;
+    cols7.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(i*bw,0,bw+1,resH); });
+  } else if(pattern==='gradient'){
+    const g = ctx.createLinearGradient(0,0,resW,0);
+    g.addColorStop(0,'#ff0040'); g.addColorStop(0.33,'#00ff80'); g.addColorStop(0.66,'#0080ff'); g.addColorStop(1,'#ff0040');
+    ctx.fillStyle=g; ctx.fillRect(0,0,resW,resH);
+  } else if(pattern==='grayscale'){
+    const g = ctx.createLinearGradient(0,0,resW,0);
+    g.addColorStop(0,'#000'); g.addColorStop(1,'#fff');
+    ctx.fillStyle=g; ctx.fillRect(0,0,resW,resH);
+  } else if(pattern==='checker'){
+    const sq=TILE_RES/4;
+    for(let y=0;y<resH;y+=sq){
+      for(let x=0;x<resW;x+=sq){
+        const on = ((x/sq)+(y/sq))%2===0;
+        ctx.fillStyle = on?'#f0f0f0':'#101010';
+        ctx.fillRect(x,y,sq,sq);
+      }
+    }
+  }
+}
+
+$('dlPng').addEventListener('click', ()=>{
+  const canvas = $('testCanvas');
+  const link = document.createElement('a');
+  link.download = `testpattern-${state.testPattern}-${state.cols*TILE_RES}x${state.rows*TILE_RES}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+/* ================= PDF EXPORT ================= */
+$('exportPdf').addEventListener('click', async ()=>{
+  const btn = $('exportPdf');
+  const original = btn.textContent;
+  btn.textContent = 'Generazione PDF…';
+  btn.disabled = true;
+  try{
+    const root = $('reportRoot');
+    const canvas = await html2canvas(root, {backgroundColor:'#0e1013', scale:1.5});
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p','mm','a4');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = canvas.height*imgW/canvas.width;
+    let heightLeft = imgH;
+    let position = 0;
+    pdf.addImage(imgData,'PNG',0,position,imgW,imgH);
+    heightLeft -= pageH;
+    while(heightLeft > 0){
+      position = heightLeft - imgH;
+      pdf.addPage();
+      pdf.addImage(imgData,'PNG',0,position,imgW,imgH);
+      heightLeft -= pageH;
+    }
+    pdf.save('ledwall-report.pdf');
+  } catch(e){
+    alert('Errore nella generazione del PDF: '+e.message);
+  } finally {
+    btn.textContent = original;
+    btn.disabled = false;
+  }
+});
+
+/* ================= QUICK NAV ================= */
+document.querySelectorAll('.quicknav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const target = $(btn.dataset.target);
+    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+function updateQuickNavActive(){
+  const sections = ['sec-dim','sec-map','sec-mat','sec-test','sec-pdf'].map(id=>$(id)).filter(Boolean);
+  let current = sections[0];
+  const y = window.scrollY + 90;
+  sections.forEach(s=>{ if(s.offsetTop <= y) current = s; });
+  document.querySelectorAll('.quicknav button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.target===current.id);
+  });
+}
+window.addEventListener('scroll', updateQuickNavActive, {passive:true});
+
+/* ================= INIT ================= */
+window.addEventListener('resize', ()=>recalcAll());
+renderPatternGrid();
+setFromTiles();
+updateQuickNavActive();
+/* ================= PWA: SERVICE WORKER ================= */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{ /* offline caching not critical */ });
+  });
+}
+</script>
+</body>
+</html>
